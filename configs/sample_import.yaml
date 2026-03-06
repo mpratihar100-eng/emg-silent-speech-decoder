@@ -1,0 +1,6 @@
+inherit: configs/base.yaml
+sample_import:
+  raw_dir: data/sample_raw
+  manifest: data/sample_raw/manifest.csv
+  prefix: sample
+  default_split: test

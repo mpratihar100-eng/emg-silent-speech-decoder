@@ -1,0 +1,8 @@
+﻿inherit: configs/base.yaml
+calibration:
+  checkpoint: checkpoints/phoneme_ctc.pt
+  epochs: 2
+  lr: 0.0005
+  adapter_only: true
+  split: train
+  speaker_id: user_local

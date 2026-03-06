@@ -1,0 +1,4 @@
+﻿inherit: configs/base.yaml
+eval:
+  checkpoint: checkpoints/phoneme_ctc.pt
+  split: test

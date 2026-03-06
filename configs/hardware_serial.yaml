@@ -1,0 +1,9 @@
+﻿inherit: configs/base.yaml
+serial:
+  port: COM3
+  baud_rate: 115200
+  channels: 8
+  scale: 1.0
+stream:
+  window_ms: 300
+  hop_ms: 200

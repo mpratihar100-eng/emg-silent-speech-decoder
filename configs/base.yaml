@@ -1,0 +1,76 @@
+﻿seed: 7
+paths:
+  data_root: data
+  internal_root: data/internal
+  checkpoints: checkpoints
+  lexicon_path: assets/mini_lexicon.txt
+
+data:
+  dataset: voicing_silent_speech
+  split_ratio: [0.8, 0.1, 0.1]
+  expected_channels: 8
+  target_sr: 1000
+  min_len: 400
+
+preprocess:
+  notch:
+    enabled: true
+    freq: 50.0
+    q: 30.0
+  bandpass:
+    enabled: true
+    low_hz: 20.0
+    high_hz: 450.0
+    order: 4
+  rectify: false
+  envelope:
+    enabled: false
+    lowpass_hz: 10.0
+  normalization:
+    mode: zscore   # zscore | robust
+    eps: 1.0e-6
+
+features:
+  mode: raw        # raw | stft
+  frame_ms: 32
+  hop_ms: 10
+  n_fft: 128
+
+model:
+  arch: cnn_bilstm_ctc   # cnn_bilstm_ctc | transformer_ctc
+  input_dim: 8
+  conv_channels: [32, 64]
+  conv_kernel: 5
+  lstm_hidden: 128
+  lstm_layers: 2
+  dropout: 0.1
+  transformer_d_model: 128
+  transformer_heads: 4
+  transformer_layers: 3
+  adapter_dim: 64
+
+tokens:
+  vocab_path: assets/phonemes.txt
+  add_blank: true
+targets:
+  mode: phoneme   # phoneme | char
+
+train:
+  batch_size: 8
+  num_workers: 0
+  epochs: 10
+  lr: 0.001
+  weight_decay: 0.0001
+  clip_grad_norm: 5.0
+  device: auto
+
+decode:
+  beam_size: 8
+  word_mode: phoneme_lexicon # phoneme_lexicon | char_ctc
+  use_word_boundary: false
+  fuzzy_max_edit: 2
+
+stream:
+  window_ms: 300
+  hop_ms: 200
+  min_confidence: 0.15

@@ -1,0 +1,7 @@
+﻿inherit: configs/base.yaml
+train:
+  epochs: 4
+  batch_size: 6
+  lr: 0.001
+data:
+  split: train

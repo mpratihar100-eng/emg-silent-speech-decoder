@@ -1,0 +1,5 @@
+﻿inherit: configs/base.yaml
+infer:
+  checkpoint: checkpoints/phoneme_ctc.pt
+  split: test
+  decode_mode: beam
