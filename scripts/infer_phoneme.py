@@ -7,7 +7,7 @@ import torch
 
 from emg_ssd.config import load_config
 from emg_ssd.ctc_decode import ctc_beam_decode, ctc_greedy_decode
-from emg_ssd.data.npz_dataset import NPZUtteranceDataset, load_split_files
+from emg_ssd.data.npz_dataset import NPZUtteranceDataset, filter_split_files, load_split_files
 from emg_ssd.models.encoder_ctc import build_model
 from emg_ssd.tokenizer import build_tokenizer
 from emg_ssd.train_utils import resolve_device
@@ -29,8 +29,10 @@ def main() -> None:
     tok = build_tokenizer(cfg)
 
     files = load_split_files(cfg["paths"]["internal_root"], args.split)
+    files = filter_split_files(files, cfg)
     if not files:
         raise RuntimeError("No samples found. Run scripts/download_data.py first.")
+    print(f"Inference files: {len(files)} (split={args.split})")
 
     ds = NPZUtteranceDataset(files, cfg, tok, expect_phonemes=True, target_mode=target_mode)
     sample_dim = ds[0]["x"].shape[1]

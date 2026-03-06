@@ -10,7 +10,7 @@ from torch.nn import CTCLoss
 from torch.utils.data import DataLoader
 
 from emg_ssd.config import ensure_dirs, load_config
-from emg_ssd.data.npz_dataset import NPZUtteranceDataset, ctc_collate, load_split_files
+from emg_ssd.data.npz_dataset import NPZUtteranceDataset, ctc_collate, filter_split_files, load_split_files
 from emg_ssd.models.encoder_ctc import build_model
 from emg_ssd.tokenizer import build_tokenizer
 from emg_ssd.train_utils import resolve_device, save_checkpoint, set_seed
@@ -35,8 +35,11 @@ def main() -> None:
     tok = build_tokenizer(cfg)
     train_files = load_split_files(cfg["paths"]["internal_root"], "train")
     val_files = load_split_files(cfg["paths"]["internal_root"], "val")
+    train_files = filter_split_files(train_files, cfg)
+    val_files = filter_split_files(val_files, cfg)
     if not train_files:
         raise RuntimeError("No training .npz files found. Run scripts/download_data.py first.")
+    print(f"Using train files: {len(train_files)} | val files: {len(val_files)}")
 
     ds = NPZUtteranceDataset(train_files, cfg, tok, expect_phonemes=True, target_mode=target_mode)
     dl = DataLoader(
@@ -92,6 +95,7 @@ def main() -> None:
             },
         )
 
+    collapse_hist: list[int] = []
     for ep in range(start_epoch, start_epoch + epochs):
         model.train()
         total = 0.0
@@ -115,6 +119,11 @@ def main() -> None:
             n += 1
             global_step += 1
             run_steps += 1
+            with torch.no_grad():
+                blank_ratio = float((torch.argmax(log_probs, dim=-1) == tok.blank_id).float().mean().item())
+            collapse_hist.append(1 if blank_ratio > 0.98 else 0)
+            if len(collapse_hist) > 200:
+                collapse_hist = collapse_hist[-200:]
             if args.log_every_steps > 0 and (run_steps % args.log_every_steps == 0):
                 elapsed = max(1e-9, time.time() - wall_start)
                 sps = run_steps / elapsed
@@ -137,6 +146,8 @@ def main() -> None:
                 }
                 with metrics_path.open("a", encoding="utf-8") as fp:
                     fp.write(json.dumps(rec) + "\n")
+            if len(collapse_hist) >= 50 and sum(collapse_hist[-50:]) >= 45:
+                print("warning: potential CTC collapse detected (blank-dominant batches). Consider lower LR / fresh checkpoint / cleaner data filter.")
             if args.save_every_steps > 0 and (run_steps % args.save_every_steps == 0):
                 _save(ep)
                 print(f"autosave checkpoint at run_steps={run_steps}, global_step={global_step}")

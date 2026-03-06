@@ -11,6 +11,10 @@ data:
   expected_channels: 8
   target_sr: 1000
   min_len: 400
+  include_prefixes: ["utt"]
+  exclude_prefixes: ["synthetic", "sample", "labeledvss"]
+  require_nonempty_text: true
+  require_nonempty_phonemes: true
 
 preprocess:
   notch:

@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 from emg_ssd.config import load_config
 from emg_ssd.ctc_decode import ctc_beam_decode, ctc_greedy_decode
-from emg_ssd.data.npz_dataset import NPZUtteranceDataset, ctc_collate, load_split_files
+from emg_ssd.data.npz_dataset import NPZUtteranceDataset, ctc_collate, filter_split_files, load_split_files
 from emg_ssd.metrics import phoneme_error_rate, word_error_rate
 from emg_ssd.models.encoder_ctc import build_model
 from emg_ssd.tokenizer import build_tokenizer
@@ -27,8 +27,10 @@ def main() -> None:
     tok = build_tokenizer(cfg)
     split = cfg.get("eval", {}).get("split", "test")
     files = load_split_files(cfg["paths"]["internal_root"], split)
+    files = filter_split_files(files, cfg)
     if not files:
         raise RuntimeError(f"No files in split={split}")
+    print(f"Evaluating files: {len(files)} (split={split})")
 
     ds = NPZUtteranceDataset(files, cfg, tok, expect_phonemes=True, target_mode=target_mode)
     dl = DataLoader(ds, batch_size=1, shuffle=False, collate_fn=ctc_collate)

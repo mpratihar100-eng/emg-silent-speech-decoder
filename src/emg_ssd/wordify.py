@@ -51,8 +51,8 @@ def phonemes_to_words(phonemes: List[str], lexicon: Dict[str, List[str]], max_ed
         return "", 0.0
 
     n = len(phonemes)
-    best = [(-1e9, []) for _ in range(n + 1)]
-    best[0] = (0.0, [])
+    best = [(-1e9, [], 1e9) for _ in range(n + 1)]  # score, words, total_edit_cost
+    best[0] = (0.0, [], 0)
     lex_items = list(lexicon.items())
     max_word_len = max(len(v) for _, v in lex_items)
 
@@ -65,11 +65,13 @@ def phonemes_to_words(phonemes: List[str], lexicon: Dict[str, List[str]], max_ed
                 d = _edit_distance(chunk, p)
                 if d <= max_edit:
                     score = best[i][0] - d - 0.1 * abs(len(chunk) - len(p))
+                    edit_total = best[i][2] + d
                     if score > best[i + l][0]:
-                        best[i + l] = (score, best[i][1] + [w])
+                        best[i + l] = (score, best[i][1] + [w], edit_total)
 
     if best[n][0] < -1e8:
         return " ".join(phonemes), 0.05
 
-    conf = 1.0 / (1.0 + abs(best[n][0]))
-    return " ".join(best[n][1]), float(conf)
+    avg_edit = best[n][2] / max(1, len(best[n][1]))
+    conf = 1.0 / (1.0 + avg_edit)
+    return " ".join(best[n][1]), float(max(0.01, min(0.99, conf)))

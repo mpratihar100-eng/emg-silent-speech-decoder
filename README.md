@@ -197,3 +197,14 @@ If key missing, code prints decoded text without crashing.
 ## Notes
 - Baseline wordification is intentionally simple and robust, not SOTA.
 - Optional forced alignment (Montreal Forced Aligner): run MFA externally on transcript+audio, then write ARPAbet strings into each internal `.npz` key `phonemes`. Training runs without MFA by using fallback text-to-phoneme heuristics/synthetic labels.
+
+## Consistency Mode (Anti-Collapse Defaults)
+- Default config now trains/evals on `utt_*` study samples only.
+- Defaults exclude mixed synthetic/sample subsets to reduce output collapse.
+- Implemented via `configs/base.yaml -> data.include_prefixes/exclude_prefixes`.
+- Trainer warns when batches become blank-dominant (possible CTC collapse).
+
+Recommended clean retrain:
+```bash
+python scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --max_steps 3000 --save_every_steps 25 --log_every_steps 10 --metrics_file outputs/train_metrics.jsonl
+```

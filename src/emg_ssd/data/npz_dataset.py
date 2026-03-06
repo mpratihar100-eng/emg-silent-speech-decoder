@@ -78,4 +78,35 @@ def ctc_collate(batch: List[Dict]) -> Dict:
 
 def load_split_files(internal_root: str | Path, split: str) -> List[Path]:
     p = Path(internal_root) / split
-    return sorted(p.rglob("*.npz"))
+    files = sorted(p.rglob("*.npz"))
+    return files
+
+
+def filter_split_files(files: Sequence[Path], cfg: Dict) -> List[Path]:
+    dcfg = cfg.get("data", {})
+    include_prefixes = [str(x).lower() for x in dcfg.get("include_prefixes", [])]
+    exclude_prefixes = [str(x).lower() for x in dcfg.get("exclude_prefixes", [])]
+    require_text = bool(dcfg.get("require_nonempty_text", False))
+    require_ph = bool(dcfg.get("require_nonempty_phonemes", False))
+
+    out: List[Path] = []
+    for f in files:
+        stem = f.stem.lower()
+        prefix = stem.split("_")[0] if "_" in stem else stem
+        if include_prefixes and prefix not in include_prefixes:
+            continue
+        if exclude_prefixes and prefix in exclude_prefixes:
+            continue
+        if require_text or require_ph:
+            try:
+                with np.load(f, allow_pickle=True) as d:
+                    text = str(d["text"].item()) if "text" in d.files else ""
+                    phonemes = str(d["phonemes"].item()) if "phonemes" in d.files else ""
+                if require_text and not text.strip():
+                    continue
+                if require_ph and not phonemes.strip():
+                    continue
+            except Exception:
+                continue
+        out.append(f)
+    return out
