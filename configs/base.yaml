@@ -2,6 +2,8 @@
 paths:
   data_root: data
   internal_root: data/internal
+  preprocessed_root: data/preprocessed
+  manifests_root: data/manifests
   checkpoints: checkpoints
   lexicon_path: assets/mini_lexicon.txt
 
@@ -78,3 +80,10 @@ stream:
   window_ms: 300
   hop_ms: 200
   min_confidence: 0.15
+
+alignment:
+  template_split: train
+  manifest_name: preprocessed_manifest.csv
+  prototype_strategy: mean
+  max_template_examples_per_text: 8
+  dtw_downsample: 4

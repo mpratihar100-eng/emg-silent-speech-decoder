@@ -33,6 +33,7 @@ def load_config(path: str | Path) -> Dict[str, Any]:
 
 
 def ensure_dirs(cfg: Dict[str, Any]) -> None:
-    for key in ["data_root", "internal_root", "checkpoints"]:
-        p = Path(cfg["paths"][key])
-        p.mkdir(parents=True, exist_ok=True)
+    for key in ["data_root", "internal_root", "checkpoints", "preprocessed_root", "manifests_root"]:
+        if key in cfg.get("paths", {}):
+            p = Path(cfg["paths"][key])
+            p.mkdir(parents=True, exist_ok=True)

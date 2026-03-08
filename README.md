@@ -41,9 +41,10 @@ pip install -r requirements.txt
 pip install -e .
 
 python scripts/download_data.py --config configs/base.yaml --source zenodo_vss
-python scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --max_steps 20
-python scripts/eval_phoneme_ctc.py --config configs/eval.yaml
-python scripts/infer_phoneme.py --config configs/infer.yaml --split test --num_samples 3
+python scripts/preprocess_align.py --config configs/base.yaml
+python scripts/train_phoneme_ctc.py --config configs/train_preprocessed.yaml --max_steps 20
+python scripts/eval_phoneme_ctc.py --config configs/eval_preprocessed.yaml
+python scripts/infer_phoneme.py --config configs/infer_preprocessed.yaml --split test --num_samples 3
 python scripts/infer_stream.py --config configs/hardware_serial.yaml --simulate
 ```
 
@@ -82,8 +83,10 @@ All command output is shown in the app log panel.
 ### How Your Data Is Processed
 1. File parse: each dropped file is converted to EMG matrix `[T, C]`.
 2. Internal format: saved as `.npz` with keys `emg`, `sr`, `text`, `phonemes`, `speaker_id`, `session_id`.
-3. Preprocessing (configurable in `configs/base.yaml`):
+3. Preprocessing/alignment stage (recommended before training):
    - notch (50/60 Hz), bandpass (20-450 Hz), optional rectify/envelope, normalization.
+   - DTW template scoring against repeated utterance envelopes to sanity-check label consistency.
+   - outputs written to `data/preprocessed/` and `data/manifests/preprocessed_manifest.csv`
 4. Features:
    - raw framed vectors or STFT log-power.
 5. Model:
@@ -106,6 +109,26 @@ python scripts/visualize_emg.py --config configs/infer.yaml --npz_path data/inte
 Outputs are written to `outputs/visuals/`:
 - `*_emg.png`: raw vs preprocessed signal for each channel/electrode
 - `*_phoneme_timeline.png`: frame-wise predicted phoneme segments over time
+
+### Preprocess Before Training
+Run this before a serious neural training pass:
+
+```bash
+python scripts/preprocess_align.py --config configs/base.yaml
+```
+
+This does three things:
+- applies the configured EMG preprocessing to the filtered study dataset
+- writes preprocessed `.npz` files into `data/preprocessed/`
+- builds a DTW-based utterance manifest for sanity-checking repeated texts before neural training
+
+Train and evaluate on the preprocessed corpus with:
+
+```bash
+python scripts/train_phoneme_ctc.py --config configs/train_preprocessed.yaml --max_steps 300
+python scripts/eval_phoneme_ctc.py --config configs/eval_preprocessed.yaml
+python scripts/infer_phoneme.py --config configs/infer_preprocessed.yaml --split test --num_samples 5
+```
 
 ## Insert Your Own Sample Data
 Use this flow to import your own quick test files and run inference immediately.
@@ -146,9 +169,13 @@ python scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --ma
 ```bash
 make setup
 make download
+make preprocess
 make train-smoke
+make train-preprocessed
 make eval
+make eval-preprocessed
 make infer
+make infer-preprocessed
 make stream-sim
 make test
 ```

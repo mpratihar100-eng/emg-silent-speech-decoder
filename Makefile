@@ -11,14 +11,26 @@ download:
 train-smoke:
 	$(PYTHON) scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --max_steps 20
 
+train-preprocessed:
+	$(PYTHON) scripts/train_phoneme_ctc.py --config configs/train_preprocessed.yaml --max_steps 300
+
 eval:
 	$(PYTHON) scripts/eval_phoneme_ctc.py --config configs/eval.yaml
+
+eval-preprocessed:
+	$(PYTHON) scripts/eval_phoneme_ctc.py --config configs/eval_preprocessed.yaml
 
 infer:
 	$(PYTHON) scripts/infer_phoneme.py --config configs/infer.yaml --split test --num_samples 3
 
+infer-preprocessed:
+	$(PYTHON) scripts/infer_phoneme.py --config configs/infer_preprocessed.yaml --split test --num_samples 3
+
 stream-sim:
 	$(PYTHON) scripts/infer_stream.py --config configs/hardware_serial.yaml --simulate
+
+preprocess:
+	$(PYTHON) scripts/preprocess_align.py --config configs/base.yaml
 
 visualize:
 	$(PYTHON) scripts/visualize_emg.py --config configs/infer.yaml --split test --index 0

@@ -129,6 +129,7 @@ class App(BaseWindow):
         row.pack(fill=tk.X)
         ttk.Button(row, text="Install Requirements", command=self.run_setup).pack(side=tk.LEFT, padx=4)
         ttk.Button(row, text="Download Baseline Data", command=self.run_download).pack(side=tk.LEFT, padx=4)
+        ttk.Button(row, text="Preprocess + Align", command=self.run_preprocess).pack(side=tk.LEFT, padx=4)
         ttk.Button(row, text="Open Logs Tab", command=lambda: self.nb.select(self.tab_logs)).pack(side=tk.LEFT, padx=4)
 
         proc = ttk.LabelFrame(self.tab_start, text="Processing Pipeline", padding=10)
@@ -137,7 +138,8 @@ class App(BaseWindow):
             proc,
             text=(
                 "Input file -> parse [T,C] -> internal .npz -> preprocess (notch/bandpass/normalize) -> "
-                "feature extraction (raw or STFT) -> CTC phoneme decoding -> lexicon word mapping"
+                "DTW template alignment manifest -> feature extraction (raw or STFT) -> "
+                "CTC phoneme decoding -> lexicon word mapping"
             ),
             wraplength=980,
         ).pack(anchor=tk.W)
@@ -148,6 +150,7 @@ class App(BaseWindow):
         ttk.Button(top, text="Create Sample Manifest", command=self.run_sample_template).pack(side=tk.LEFT, padx=4)
         ttk.Button(top, text="Import Dropped Files", command=self.run_import_dropped).pack(side=tk.LEFT, padx=4)
         ttk.Button(top, text="Import Existing sample_raw", command=self.run_sample_import).pack(side=tk.LEFT, padx=4)
+        ttk.Button(top, text="Preprocess Corpus", command=self.run_preprocess).pack(side=tk.LEFT, padx=4)
 
         drop_frame = ttk.LabelFrame(self.tab_data, text="Drag & Drop Sample Data", padding=10)
         drop_frame.pack(fill=tk.BOTH, expand=True, pady=(10, 0))
@@ -423,6 +426,9 @@ class App(BaseWindow):
 
     def run_download(self) -> None:
         self._run(["scripts/download_data.py", "--config", self.cfg_base.get(), "--source", "zenodo_vss"])
+
+    def run_preprocess(self) -> None:
+        self._run(["scripts/preprocess_align.py", "--config", self.cfg_base.get()])
 
     def run_sample_template(self) -> None:
         self._run(["scripts/prepare_sample_data.py", "--config", self.cfg_sample.get(), "--create_template"])

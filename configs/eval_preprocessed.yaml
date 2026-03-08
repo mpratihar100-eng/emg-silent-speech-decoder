@@ -1,0 +1,8 @@
+inherit: configs/base.yaml
+
+paths:
+  internal_root: data/preprocessed
+
+eval:
+  checkpoint: checkpoints/phoneme_ctc.pt
+  split: test

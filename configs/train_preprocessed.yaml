@@ -1,0 +1,12 @@
+inherit: configs/base.yaml
+
+paths:
+  internal_root: data/preprocessed
+
+train:
+  epochs: 20
+  batch_size: 8
+  lr: 0.0003
+  weight_decay: 0.0001
+  clip_grad_norm: 5.0
+  device: auto
