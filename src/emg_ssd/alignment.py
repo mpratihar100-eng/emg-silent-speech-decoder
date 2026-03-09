@@ -81,7 +81,19 @@ def score_against_prototypes(proc_emg: np.ndarray, prototypes: Dict[str, np.ndar
     return best_text, best_dist
 
 
-def save_preprocessed_npz(out_path: str | Path, raw_npz: Path, proc_emg: np.ndarray, sr: int, text: str, phonemes: str, speaker_id: str, session_id: str) -> None:
+def save_preprocessed_npz(
+    out_path: str | Path,
+    raw_npz: Path,
+    proc_emg: np.ndarray,
+    sr: int,
+    text: str,
+    phonemes: str,
+    speaker_id: str,
+    session_id: str,
+    utterance_id: str = "",
+    source_file: str = "",
+    alignment_path: str = "",
+) -> None:
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(
@@ -92,5 +104,8 @@ def save_preprocessed_npz(out_path: str | Path, raw_npz: Path, proc_emg: np.ndar
         phonemes=np.array(phonemes),
         speaker_id=np.array(speaker_id),
         session_id=np.array(session_id),
+        utterance_id=np.array(utterance_id),
+        source_file=np.array(source_file),
+        alignment_path=np.array(alignment_path),
         source_path=np.array(str(raw_npz)),
     )

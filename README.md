@@ -41,6 +41,7 @@ pip install -r requirements.txt
 pip install -e .
 
 python scripts/download_data.py --config configs/base.yaml --source zenodo_vss
+python scripts/validate_corpus.py --config configs/base.yaml
 python scripts/preprocess_align.py --config configs/base.yaml
 python scripts/train_phoneme_ctc.py --config configs/train_preprocessed.yaml --max_steps 20
 python scripts/eval_phoneme_ctc.py --config configs/eval_preprocessed.yaml
@@ -122,6 +123,28 @@ This does three things:
 - writes preprocessed `.npz` files into `data/preprocessed/`
 - builds a DTW-based utterance manifest for sanity-checking repeated texts before neural training
 
+Fast local verification mode:
+
+```bash
+python scripts/preprocess_align.py --config configs/base_official_aligned.yaml --max_files 100 --skip_dtw_scores --log_every 20
+```
+
+Use this only to verify import/alignment preservation/training startup on a laptop. Keep the full default run for Colab quality runs.
+
+### Official Alignment Import
+If you have the official VSS/Berkeley alignment archive, import it before preprocessing/training:
+
+```bash
+python scripts/download_alignments.py --config configs/base_official_aligned.yaml --archive path/to/alignments.tar.gz
+python scripts/import_vss_alignments.py --config configs/base_official_aligned.yaml --alignment_dir data/alignments_raw/extracted
+python scripts/validate_corpus.py --config configs/base_official_aligned.yaml --root data/internal_official --require_alignment
+python scripts/preprocess_align.py --config configs/base_official_aligned.yaml
+python scripts/validate_corpus.py --config configs/train_official_preprocessed_aligned.yaml --root data/preprocessed_official --require_alignment
+python scripts/train_phoneme_ctc.py --config configs/train_official_preprocessed_aligned.yaml --max_steps 300
+```
+
+Imported labels are matched onto internal examples using `utterance_id` and original `source_file` metadata preserved during conversion.
+
 Train and evaluate on the preprocessed corpus with:
 
 ```bash
@@ -169,13 +192,19 @@ python scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --ma
 ```bash
 make setup
 make download
+make validate
+make download-alignments
+make import-alignments
 make preprocess
 make train-smoke
 make train-preprocessed
+make train-aligned
 make eval
 make eval-preprocessed
+make eval-aligned
 make infer
 make infer-preprocessed
+make infer-aligned
 make stream-sim
 make test
 ```
@@ -230,8 +259,23 @@ If key missing, code prints decoded text without crashing.
 - Defaults exclude mixed synthetic/sample subsets to reduce output collapse.
 - Implemented via `configs/base.yaml -> data.include_prefixes/exclude_prefixes`.
 - Trainer warns when batches become blank-dominant (possible CTC collapse).
+- Trainer now validates filtered labels before training when `alignment.strict_validation=true`.
+- Aligned configs additionally require `alignment_path` to be present on training examples.
 
 Recommended clean retrain:
 ```bash
-python scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --max_steps 3000 --save_every_steps 25 --log_every_steps 10 --metrics_file outputs/train_metrics.jsonl
+python scripts/train_phoneme_ctc.py --config configs/train_preprocessed.yaml --max_steps 3000 --save_every_steps 25 --log_every_steps 10 --metrics_file outputs/train_metrics.jsonl
+```
+
+Recommended aligned retrain:
+```bash
+python scripts/validate_corpus.py --config configs/train_official_preprocessed_aligned.yaml --root data/preprocessed_official --require_alignment
+python scripts/train_phoneme_ctc.py --config configs/train_official_preprocessed_aligned.yaml --max_steps 3000 --save_every_steps 25 --log_every_steps 10 --metrics_file outputs/train_metrics.jsonl
+```
+
+## Colab Persistent Runner
+For Colab, keep the active repo in `/content` for speed and sync artifacts to Drive after each block:
+
+```bash
+python scripts/colab_persistent_runner.py --drive_root /content/drive/MyDrive/emg_ssd_colab --repo_dir /content/emg-silent-speech-decoder --preprocess_config configs/base_official_aligned.yaml --max_steps 200 --num_blocks 10
 ```

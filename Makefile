@@ -8,11 +8,23 @@ setup:
 download:
 	$(PYTHON) scripts/download_data.py --config configs/base.yaml --source zenodo_vss
 
+download-alignments:
+	$(PYTHON) scripts/download_alignments.py --config configs/base.yaml --archive data/alignments_raw/alignments.tar.gz
+
+import-alignments:
+	$(PYTHON) scripts/import_vss_alignments.py --config configs/base.yaml --alignment_dir data/alignments_raw/extracted
+
+validate:
+	$(PYTHON) scripts/validate_corpus.py --config configs/base.yaml
+
 train-smoke:
 	$(PYTHON) scripts/train_phoneme_ctc.py --config configs/train_phoneme_ctc.yaml --max_steps 20
 
 train-preprocessed:
 	$(PYTHON) scripts/train_phoneme_ctc.py --config configs/train_preprocessed.yaml --max_steps 300
+
+train-aligned:
+	$(PYTHON) scripts/train_phoneme_ctc.py --config configs/train_preprocessed_aligned.yaml --max_steps 300
 
 eval:
 	$(PYTHON) scripts/eval_phoneme_ctc.py --config configs/eval.yaml
@@ -20,11 +32,17 @@ eval:
 eval-preprocessed:
 	$(PYTHON) scripts/eval_phoneme_ctc.py --config configs/eval_preprocessed.yaml
 
+eval-aligned:
+	$(PYTHON) scripts/eval_phoneme_ctc.py --config configs/eval_preprocessed_aligned.yaml
+
 infer:
 	$(PYTHON) scripts/infer_phoneme.py --config configs/infer.yaml --split test --num_samples 3
 
 infer-preprocessed:
 	$(PYTHON) scripts/infer_phoneme.py --config configs/infer_preprocessed.yaml --split test --num_samples 3
+
+infer-aligned:
+	$(PYTHON) scripts/infer_phoneme.py --config configs/infer_preprocessed_aligned.yaml --split test --num_samples 3
 
 stream-sim:
 	$(PYTHON) scripts/infer_stream.py --config configs/hardware_serial.yaml --simulate

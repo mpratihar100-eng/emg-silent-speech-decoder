@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Iterable
 
 import numpy as np
+import json
+import re
 
 
 FALLBACK_TEXTS = [
@@ -23,11 +25,52 @@ def _simple_text_to_phonemes(text: str, lexicon: dict[str, list[str]]) -> str:
     return " ".join(toks)
 
 
-def convert_generic_arrays_to_internal(source_dir: str | Path, out_dir: str | Path, expected_channels: int = 8, sr: int = 1000) -> int:
+def _normalize_text(text: str) -> str:
+    return " ".join(str(text).strip().upper().split())
+
+
+def _normalize_session_name(name: str) -> str:
+    name = name.replace("_silent", "").replace("_voiced", "")
+    return name
+
+
+def _infer_utt_id(path: Path) -> str:
+    m = re.search(r"(\d+)", path.stem)
+    utt = m.group(1) if m else path.stem
+    session = _normalize_session_name(path.parent.name)
+    return f"{session}_{utt}" if session else utt
+
+
+def _load_info_text(array_path: Path) -> str:
+    candidates = [
+        array_path.with_name(f"{array_path.stem}_info.json"),
+        array_path.with_name(f"{_infer_utt_id(array_path)}_info.json"),
+    ]
+    for p in candidates:
+        if not p.exists():
+            continue
+        try:
+            info = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        text = str(info.get("text", "")).strip()
+        if text:
+            return _normalize_text(text)
+    return ""
+
+
+def convert_generic_arrays_to_internal(
+    source_dir: str | Path,
+    out_dir: str | Path,
+    expected_channels: int = 8,
+    sr: int = 1000,
+    allowed_raw_roots: list[str] | None = None,
+) -> int:
     source = Path(source_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    files = list(source.rglob("*.npy")) + list(source.rglob("*.npz"))
+    files = list(source.rglob("*_emg.npy")) + list(source.rglob("*.npz"))
+    allowed = {x.lower() for x in (allowed_raw_roots or []) if str(x).strip()}
     n = 0
     lex = {
         "HELLO": ["HH", "AH", "L", "OW"],
@@ -41,6 +84,8 @@ def convert_generic_arrays_to_internal(source_dir: str | Path, out_dir: str | Pa
         "RIGHT": ["R", "AY", "T"],
     }
     for i, f in enumerate(files):
+        if allowed and not any(part.lower() in allowed for part in f.parts):
+            continue
         arr = None
         if f.suffix == ".npy":
             arr = np.load(f)
@@ -62,9 +107,10 @@ def convert_generic_arrays_to_internal(source_dir: str | Path, out_dir: str | Pa
         if arr.shape[1] != expected_channels:
             continue
 
-        text = FALLBACK_TEXTS[i % len(FALLBACK_TEXTS)]
+        text = _load_info_text(f) or FALLBACK_TEXTS[i % len(FALLBACK_TEXTS)]
         phones = _simple_text_to_phonemes(text, lex)
         split = "train" if i % 10 < 8 else ("val" if i % 10 == 8 else "test")
+        session_name = _normalize_session_name(f.parent.name)
         tgt = out / split / f"utt_{i:05d}.npz"
         tgt.parent.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(
@@ -73,8 +119,10 @@ def convert_generic_arrays_to_internal(source_dir: str | Path, out_dir: str | Pa
             sr=np.array(sr),
             text=np.array(text),
             phonemes=np.array(phones),
-            speaker_id=np.array("spk0"),
-            session_id=np.array("sess0"),
+            speaker_id=np.array(session_name.split("-")[0] if session_name else "spk0"),
+            session_id=np.array(session_name or "sess0"),
+            utterance_id=np.array(_infer_utt_id(f)),
+            source_file=np.array(str(f)),
         )
         n += 1
     return n

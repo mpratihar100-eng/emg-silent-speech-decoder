@@ -88,6 +88,7 @@ def filter_split_files(files: Sequence[Path], cfg: Dict) -> List[Path]:
     exclude_prefixes = [str(x).lower() for x in dcfg.get("exclude_prefixes", [])]
     require_text = bool(dcfg.get("require_nonempty_text", False))
     require_ph = bool(dcfg.get("require_nonempty_phonemes", False))
+    require_alignment = bool(dcfg.get("require_alignment_path", False))
 
     out: List[Path] = []
     for f in files:
@@ -102,9 +103,12 @@ def filter_split_files(files: Sequence[Path], cfg: Dict) -> List[Path]:
                 with np.load(f, allow_pickle=True) as d:
                     text = str(d["text"].item()) if "text" in d.files else ""
                     phonemes = str(d["phonemes"].item()) if "phonemes" in d.files else ""
+                    alignment_path = str(d["alignment_path"].item()) if "alignment_path" in d.files else ""
                 if require_text and not text.strip():
                     continue
                 if require_ph and not phonemes.strip():
+                    continue
+                if require_alignment and not alignment_path.strip():
                     continue
             except Exception:
                 continue

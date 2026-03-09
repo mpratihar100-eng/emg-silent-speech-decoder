@@ -1,0 +1,12 @@
+inherit: configs/base.yaml
+
+paths:
+  internal_root: data/internal_official
+  preprocessed_root: data/preprocessed_official
+  manifests_root: data/manifests_official
+
+data:
+  include_prefixes: ["utt"]
+  exclude_prefixes: []
+  allowed_raw_roots: ["silent_parallel_data", "voiced_parallel_data"]
+  require_alignment_path: true

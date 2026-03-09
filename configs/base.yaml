@@ -4,6 +4,7 @@ paths:
   internal_root: data/internal
   preprocessed_root: data/preprocessed
   manifests_root: data/manifests
+  raw_alignments_root: data/alignments_raw
   checkpoints: checkpoints
   lexicon_path: assets/mini_lexicon.txt
 
@@ -87,3 +88,4 @@ alignment:
   prototype_strategy: mean
   max_template_examples_per_text: 8
   dtw_downsample: 4
+  strict_validation: true

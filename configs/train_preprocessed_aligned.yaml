@@ -1,0 +1,4 @@
+inherit: configs/train_preprocessed.yaml
+
+alignment:
+  require_alignment: true

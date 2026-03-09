@@ -3,6 +3,10 @@ inherit: configs/base.yaml
 paths:
   internal_root: data/preprocessed
 
+data:
+  include_prefixes: ["prep"]
+  exclude_prefixes: []
+
 infer:
   checkpoint: checkpoints/phoneme_ctc.pt
   split: test

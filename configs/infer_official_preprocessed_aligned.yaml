@@ -1,0 +1,17 @@
+inherit: configs/base_official_aligned.yaml
+
+paths:
+  internal_root: data/preprocessed_official
+
+data:
+  include_prefixes: ["prep"]
+  exclude_prefixes: []
+  require_alignment_path: true
+
+alignment:
+  require_alignment: true
+
+infer:
+  checkpoint: checkpoints/phoneme_ctc.pt
+  split: test
+  decode_mode: beam

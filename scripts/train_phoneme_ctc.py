@@ -5,11 +5,13 @@ import json
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch.nn import CTCLoss
 from torch.utils.data import DataLoader
 
 from emg_ssd.config import ensure_dirs, load_config
+from emg_ssd.alignment_labels import iter_label_issues
 from emg_ssd.data.npz_dataset import NPZUtteranceDataset, ctc_collate, filter_split_files, load_split_files
 from emg_ssd.models.encoder_ctc import build_model
 from emg_ssd.tokenizer import build_tokenizer
@@ -39,6 +41,16 @@ def main() -> None:
     val_files = filter_split_files(val_files, cfg)
     if not train_files:
         raise RuntimeError("No training .npz files found. Run scripts/download_data.py first.")
+    if bool(cfg.get("alignment", {}).get("strict_validation", False)):
+        issues = list(iter_label_issues(train_files[:256], set(tok.tokens)))
+        if issues:
+            raise RuntimeError("Corpus validation failed before training: " + issues[0])
+        if bool(cfg.get("alignment", {}).get("require_alignment", False)):
+            for p in train_files[:256]:
+                with np.load(p, allow_pickle=True) as d:
+                    alignment_path = str(d["alignment_path"].item()) if "alignment_path" in d.files else ""
+                if not alignment_path.strip():
+                    raise RuntimeError(f"Alignment-required training requested, but no alignment_path was found for {p}")
     print(f"Using train files: {len(train_files)} | val files: {len(val_files)}")
 
     ds = NPZUtteranceDataset(train_files, cfg, tok, expect_phonemes=True, target_mode=target_mode)

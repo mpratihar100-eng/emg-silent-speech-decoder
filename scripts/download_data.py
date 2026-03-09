@@ -67,6 +67,7 @@ def main() -> None:
     ap.add_argument("--source", default="zenodo_vss", choices=["zenodo_vss", "emg_uka_kaggle", "synthetic"])
     ap.add_argument("--record_id", default="4064408")
     ap.add_argument("--source_dir", default="")
+    ap.add_argument("--archive", default="")
     args = ap.parse_args()
 
     cfg = load_config(args.config)
@@ -97,14 +98,25 @@ def main() -> None:
     else:
         raw_dir = data_root / "voicing_silent_speech_raw"
         raw_dir.mkdir(parents=True, exist_ok=True)
-        archive = _download_zenodo_record(args.record_id, raw_dir)
-        if archive is not None:
-            extracted = _extract_archive(archive, raw_dir)
+        direct_source = Path(args.source_dir) if args.source_dir else Path()
+        extracted = None
+        if direct_source and direct_source.exists():
+            extracted = direct_source
+        else:
+            pre_extracted = raw_dir / "extracted"
+            if pre_extracted.exists():
+                extracted = pre_extracted
+            else:
+                archive = Path(args.archive) if args.archive else _download_zenodo_record(args.record_id, raw_dir)
+                if archive is not None:
+                    extracted = _extract_archive(archive, raw_dir)
+        if extracted is not None:
             n = convert_generic_arrays_to_internal(
                 extracted,
                 internal,
                 expected_channels=int(cfg["data"]["expected_channels"]),
                 sr=int(cfg["data"]["target_sr"]),
+                allowed_raw_roots=list(cfg.get("data", {}).get("allowed_raw_roots", [])),
             )
         if n == 0:
             n = generate_synthetic_internal(
